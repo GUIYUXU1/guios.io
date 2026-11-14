@@ -1,0 +1,1487 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="GUIOS —— 基于 Scratch 编写的虚拟操作系统介绍页">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0f1420">
+<title>GUIOS · 介绍页</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --fg: #eaf0ff;
+    --accent: #ffd08a;
+    --accent-soft: rgba(255, 200, 150, .5);
+    --glass: rgba(255, 255, 255, .08);
+    --ease-out: cubic-bezier(.2, .8, .3, 1);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body.intro-lock { overflow: hidden; }
+
+  :focus-visible { outline: 2px solid rgba(255, 200, 150, .9); outline-offset: 3px; border-radius: 6px; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ============ 跳转链接 ============ */
+  .skip-link {
+    position: fixed; top: -60px; left: 16px;
+    z-index: 200;
+    padding: 10px 18px;
+    border-radius: 0 0 12px 12px;
+    background: #ffd08a; color: #20160a;
+    font-size: 14px; font-weight: 600;
+    text-decoration: none;
+    transition: top .2s ease;
+  }
+  .skip-link:focus-visible { top: 0; }
+
+  /* ============ 开场黑幕 ============ */
+  .veil {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 40;
+    pointer-events: none;
+    transition: opacity .8s ease;
+  }
+  .veil.hide { opacity: 0; }
+
+  /* ============ 跳过按钮 ============ */
+  .skip-intro {
+    position: fixed;
+    right: 20px; bottom: 20px;
+    z-index: 130;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.26);
+    background: rgba(20,25,40,.55);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    color: var(--fg);
+    font: inherit; font-size: 13.5px; letter-spacing: .06em;
+    cursor: pointer;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity .4s ease, transform .35s var(--ease-out),
+                background .25s ease, border-color .25s ease;
+  }
+  .skip-intro.show { opacity: 1; transform: none; }
+  .skip-intro:hover { background: rgba(40,48,70,.72); border-color: var(--accent-soft); }
+  .skip-intro:active { transform: scale(.97); }
+  .skip-intro kbd {
+    font-family: inherit; font-size: 11px;
+    padding: 2px 6px; border-radius: 6px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.22);
+  }
+  .skip-intro[hidden] { display: none; }
+
+  /* ============ 风景背景 ============ */
+  .scene {
+    position: fixed; inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    will-change: transform;
+    transform: scale(1.04);
+  }
+  .scene svg { width: 100%; height: 100%; display: block; }
+  .scene::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(120% 90% at 50% 40%, transparent 30%, rgba(10,15,30,.55) 100%);
+    pointer-events: none;
+  }
+
+  /* ============ 鼠标环境光晕 ============ */
+  .cursor-glow {
+    position: fixed;
+    left: 0; top: 0;
+    width: 600px; height: 600px;
+    margin: -300px 0 0 -300px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    background: radial-gradient(circle,
+      rgba(255,200,150,.15) 0%,
+      rgba(255,160,100,.08) 30%,
+      rgba(255,140,80,.03) 55%,
+      transparent 72%);
+    transition: opacity .8s ease;
+    will-change: transform;
+  }
+  .cursor-glow.on { opacity: 1; }
+
+  /* ============ 顶部搜索栏 ============ */
+  .searchbar {
+    position: fixed;
+    top: 26px; left: 50%;
+    transform: translateX(-50%);
+    width: min(600px, 90vw);
+    height: 56px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 20px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,.05));
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
+    border: 1px solid rgba(255,255,255,.25);
+    border-top: 1.5px solid rgba(255,255,255,.7);
+    border-left: 1.5px solid rgba(255,255,255,.5);
+    box-shadow:
+      0 15px 35px rgba(0,0,0,.4),
+      inset 0 1px 0 rgba(255,255,255,.8),
+      inset 0 -1px 0 rgba(255,255,255,.1);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .45s ease, box-shadow .3s ease, transform .35s var(--ease-out);
+  }
+  .searchbar.revealed { opacity: 1; }
+  .searchbar.revealed.interactive { pointer-events: auto; }
+  .searchbar:focus-within {
+    transform: translateX(-50%) scale(1.015);
+    box-shadow:
+      0 20px 45px rgba(0,0,0,.45),
+      0 0 0 2px rgba(255,200,150,.35),
+      inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  .search-icon { width: 19px; height: 19px; flex: none; opacity: .8; }
+  .searchbar input {
+    flex: 1; height: 100%;
+    min-width: 0;
+    background: transparent; border: 0; outline: 0;
+    color: #fff; font-size: 16px; font-family: inherit;
+    letter-spacing: .02em;
+  }
+  .searchbar input::placeholder { color: rgba(255,255,255,.6); }
+  .searchbar kbd {
+    font-family: inherit; font-size: 11.5px;
+    padding: 4px 9px; border-radius: 8px;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.25);
+    color: rgba(255,255,255,.85);
+    flex: none;
+    white-space: nowrap;
+  }
+
+  /* 清除按钮 */
+  .clear-btn {
+    display: grid; place-items: center;
+    width: 26px; height: 26px; flex: none;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.12);
+    color: rgba(255,255,255,.85);
+    cursor: pointer;
+    transition: background .2s ease, transform .2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .clear-btn:hover { background: rgba(255,255,255,.26); }
+  .clear-btn:active { transform: scale(.9); }
+  .clear-btn[hidden] { display: none; }
+  .clear-btn svg { width: 13px; height: 13px; }
+
+  /* ============ 搜索结果面板 ============ */
+  .results {
+    position: fixed;
+    top: 92px; left: 50%;
+    width: min(600px, 90vw);
+    max-height: 46vh;
+    max-height: 46dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    border-radius: 20px;
+    background: rgba(20,25,40,.7);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.2);
+    border-top: 1px solid rgba(255,255,255,.4);
+    box-shadow: 0 25px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.3);
+    padding: 8px;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(-9px) scale(.98);
+    transform-origin: top center;
+    transition: opacity .22s ease, transform .28s var(--ease-out), visibility 0s linear .28s;
+    z-index: 51;
+  }
+  .results.open {
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: opacity .22s ease, transform .28s var(--ease-out), visibility 0s;
+  }
+  .results::-webkit-scrollbar { width: 6px; }
+  .results::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 3px; }
+
+  .results-hover {
+    position: absolute;
+    left: 0; top: 0;
+    width: 0; height: 0;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255,200,150,.2), rgba(255,255,255,.08));
+    border: 1px solid rgba(255,255,255,.2);
+    box-shadow: 0 2px 14px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.4);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 0;
+    transition: transform .24s var(--ease-out), width .2s, height .2s, opacity .16s;
+    will-change: transform, width, height;
+  }
+  .results.hovering .results-hover { opacity: 1; }
+  .results-list { position: relative; z-index: 1; }
+
+  .result-item {
+    display: block; width: 100%; text-align: left;
+    background: transparent; border: 0;
+    color: var(--fg); font-family: inherit;
+    padding: 12px 14px; border-radius: 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .result-item:focus-visible {
+    outline: 2px solid rgba(255,200,150,.85);
+    outline-offset: -2px;
+  }
+  .r-title { display: block; font-size: 12px; letter-spacing: .1em; opacity: .6; margin-bottom: 4px; }
+  .r-snippet { display: block; font-size: 14.5px; line-height: 1.6; opacity: .92; }
+  .r-snippet mark.r-mark {
+    background: rgba(255,209,102,.92);
+    color: #20160a;
+    border-radius: 3px;
+    padding: 0 1px;
+    box-shadow: none;
+  }
+
+  .no-result {
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    padding: 26px 16px;
+    text-align: center;
+    font-size: 14px;
+    opacity: .72;
+  }
+  .no-result svg { width: 30px; height: 30px; opacity: .5; margin-bottom: 2px; }
+  .no-result strong { font-weight: 600; font-size: 14.5px; }
+  .no-result span { font-size: 12.5px; opacity: .7; letter-spacing: .04em; }
+
+  /* ============ 正文内容 ============ */
+  .content {
+    position: relative; z-index: 2;
+    max-width: 760px; margin: 0 auto;
+    padding: 170px 24px 140px;
+    opacity: 0; transform: translateY(22px);
+    transition: opacity .9s ease, transform .9s var(--ease-out);
+    perspective: 1200px;
+  }
+  .content.show { opacity: 1; transform: none; }
+
+  .hero { text-align: center; margin-bottom: 52px; }
+  .hero h1 {
+    font-size: clamp(38px, 7vw, 64px);
+    letter-spacing: .22em;
+    font-weight: 800;
+    background: linear-gradient(180deg, #ffffff 0%, #ffe0b8 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter:
+      drop-shadow(0 6px 26px rgba(0,0,0,.65))
+      drop-shadow(0 0 18px rgba(255,200,150,.45));
+  }
+  /* 标题里的命中高亮：保持渐变质感，不破坏排版 */
+  .hero h1 mark {
+    background: none;
+    color: var(--accent);
+    -webkit-text-fill-color: var(--accent);
+    box-shadow: none;
+    padding: 0;
+    text-shadow: 0 0 28px rgba(255, 208, 138, .9);
+  }
+  .hero p {
+    margin-top: 18px; font-size: 15px; letter-spacing: .08em;
+    line-height: 1.9;
+    color: rgba(235,245,255,.85);
+    text-shadow: 0 2px 16px rgba(0,0,0,.6);
+  }
+
+  /* ---------- 液态玻璃卡片 ---------- */
+  .card {
+    position: relative;
+    background: var(--glass);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,.15);
+    border-top: 1.5px solid rgba(255,255,255,.6);
+    border-left: 1.5px solid rgba(255,255,255,.4);
+    border-radius: 24px;
+    padding: 30px 32px;
+    margin-bottom: 24px;
+
+    box-shadow:
+      0 20px 40px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.3);
+
+    line-height: 1.95; font-size: 16px;
+    color: rgba(240,245,255,.95);
+
+    transform-style: preserve-3d;
+    transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+    transition: transform .5s var(--ease-out), box-shadow .3s ease, opacity .7s ease;
+
+    scroll-margin-top: 130px;
+  }
+  .card.tilting {
+    transition: transform .12s ease-out, box-shadow .3s ease, opacity .7s ease;
+    will-change: transform;
+  }
+
+  /* 滚动入场 */
+  .card.reveal { opacity: 0; transform: translateY(26px); }
+  .card.reveal.in { opacity: 1; transform: none; }
+
+  /* 动态玻璃高光 */
+  .card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      400px circle at var(--mx, 50%) var(--my, 50%),
+      rgba(255,255,255,0.35),
+      transparent 50%
+    );
+    opacity: 0;
+    transition: opacity .3s ease;
+    pointer-events: none;
+    z-index: 0;
+    transform: translateZ(1px);
+  }
+  .card:hover::before { opacity: 1; }
+
+  .card > * {
+    position: relative;
+    z-index: 2;
+    transform: translateZ(18px);
+  }
+
+  .card:hover {
+    box-shadow:
+      0 30px 60px rgba(0,0,0,.5),
+      inset 0 1px 0 rgba(255,255,255,.5),
+      0 0 0 1px rgba(255,200,150,.2);
+  }
+
+  .card h2 {
+    font-size: 22px; letter-spacing: .12em;
+    margin-bottom: 12px; color: #fff;
+    text-shadow: 0 5px 15px rgba(0,0,0,.5);
+    transform: translateZ(28px);
+  }
+
+  .card.flash { animation: flashCard 1.3s ease; }
+  @keyframes flashCard {
+    0%   { box-shadow: 0 0 0 0 rgba(255,214,120,0), 0 20px 40px rgba(0,0,0,.35); }
+    22%  { box-shadow: 0 0 0 10px rgba(255,214,120,.3), 0 20px 40px rgba(0,0,0,.35); }
+    100% { box-shadow: 0 0 0 0 rgba(255,214,120,0), 0 20px 40px rgba(0,0,0,.35); }
+  }
+
+  mark {
+    background: rgba(255,209,102,.95);
+    color: #20160a;
+    -webkit-text-fill-color: #20160a;
+    border-radius: 4px;
+    padding: 0 2px;
+    box-shadow: 0 0 15px rgba(255,209,102,.8);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  mark.pulse { animation: markPulse 1.1s ease 2; }
+  @keyframes markPulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(255,209,102,.8); }
+    50%      { box-shadow: 0 0 26px rgba(255,209,102,1), 0 0 0 6px rgba(255,209,102,.22); }
+  }
+
+  /* ============ 开场动画层 ============ */
+  .intro {
+    position: fixed; inset: 0;
+    z-index: 110;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity .65s ease;
+  }
+  .intro.done { opacity: 0; }
+
+  .intro-gui {
+    position: fixed; left: 50%; top: 50%;
+    transform: translate(-50%,-50%) scale(.72);
+    font-size: clamp(78px, 17vw, 190px);
+    font-weight: 900;
+    letter-spacing: .1em;
+    color: #fff;
+    text-shadow:
+      0 0 26px rgba(255,255,255,.85),
+      0 0 90px rgba(255,200,150,.65),
+      0 0 160px rgba(255,160,100,.45);
+    opacity: 0;
+    transition: opacity .4s ease, transform .55s cubic-bezier(.2,.9,.3,1), filter .5s ease;
+  }
+  .intro-gui.in { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .intro-gui.blink { animation: guiBlink .13s steps(1) 4; }
+  .intro-gui.out { opacity: 0; transform: translate(-50%,-50%) scale(1.18); filter: blur(10px); }
+  @keyframes guiBlink {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(2.6); }
+  }
+
+  .drag-box {
+    position: fixed;
+    border: 2px dashed #ffb877;
+    background: rgba(255, 184, 119, 0.15);
+    box-shadow: 0 0 15px rgba(255, 184, 119, 0.3), inset 0 0 15px rgba(255, 184, 119, 0.1);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 119;
+    opacity: 0;
+    transition: width .6s cubic-bezier(.25,.1,.25,1),
+                height .6s cubic-bezier(.25,.1,.25,1),
+                opacity .2s ease;
+  }
+  .drag-box.active { opacity: 1; }
+  .drag-box.selection { border-radius: 24px; }
+
+  .mid-card {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    width: min(460px, 84vw);
+    height: 260px;
+    border-radius: 22px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity .35s ease;
+    z-index: 117;
+    background: rgba(255,255,255,.05);
+    box-shadow: 0 0 0 1px rgba(255,255,255,.3), 0 30px 90px rgba(0,0,0,.6);
+  }
+  .mid-card.show { opacity: 1; }
+
+  .mid-art {
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 50% 55%, #fff6d0 0 7%, rgba(255,214,150,.85) 8%, transparent 20%),
+      linear-gradient(180deg,
+        #2a3b6e 0%,
+        #7c4a72 30%,
+        #d17b67 50%,
+        #f5b876 62%,
+        #ffdca8 70%,
+        #2c5a4b 70.5%,
+        #184233 84%,
+        #0a1c15 100%);
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path .9s linear;
+  }
+
+  .mid-gui {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(34px, 7vw, 58px);
+    font-weight: 900;
+    letter-spacing: .1em;
+    color: #fff;
+    text-shadow: 0 6px 40px rgba(0,0,0,.65), 0 0 50px rgba(255,255,255,.45);
+    opacity: 0; transform: scale(.9);
+    transition: opacity .35s ease, transform .35s cubic-bezier(.2,.9,.3,1);
+  }
+  .mid-card.show .mid-gui { opacity: 1; transform: scale(1); }
+
+  .cursor {
+    position: fixed; left: 0; top: 0;
+    width: 26px; height: 32px;
+    opacity: 0;
+    transition: transform .4s cubic-bezier(.5,0,.15,1), opacity .3s ease;
+    z-index: 122;
+    filter: drop-shadow(0 3px 7px rgba(0,0,0,.55));
+    pointer-events: none;
+  }
+  .cursor.visible { opacity: 1; }
+
+  .pen {
+    position: fixed; left: 0; top: 0;
+    width: 40px; height: 40px;
+    opacity: 0;
+    transition: transform .9s ease-in-out, opacity .3s ease;
+    z-index: 121;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,.55));
+    pointer-events: none;
+  }
+  .pen.visible { opacity: 1; }
+
+  @media (max-width: 640px) {
+    .card { padding: 20px 20px; font-size: 15px; }
+    .content { padding-top: 140px; }
+    .searchbar { height: 50px; top: 18px; padding: 0 16px; }
+    .searchbar kbd { display: none; }
+    .results { top: 80px; }
+    .cursor-glow { display: none; }
+    .card, .card > * { transform: none !important; }
+    .skip-intro { right: 14px; bottom: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card, .content, .searchbar, .results, .drag-box,
+    .intro, .intro-gui, .mid-card, .mid-art, .cursor, .pen,
+    .skip-intro {
+      transition-duration: .01ms !important;
+      animation-duration: .01ms !important;
+    }
+    .card, .card > * { transform: none !important; }
+    .card.reveal { opacity: 1 !important; }
+    .cursor-glow { display: none; }
+    .scene { transform: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#content">跳到正文</a>
+
+<div class="veil" id="veil"></div>
+<div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+<!-- ================= 风景背景 ================= -->
+<div class="scene" id="scene" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#1d2b53"/>
+        <stop offset="25%"  stop-color="#5c426f"/>
+        <stop offset="50%"  stop-color="#c66c6c"/>
+        <stop offset="70%"  stop-color="#f4a25e"/>
+        <stop offset="100%" stop-color="#ffd89b"/>
+      </linearGradient>
+      <radialGradient id="sunGlow">
+        <stop offset="0%"   stop-color="#fff8e1" stop-opacity="0.9"/>
+        <stop offset="30%"  stop-color="#ffd180" stop-opacity="0.6"/>
+        <stop offset="60%"  stop-color="#ff9a56" stop-opacity="0.2"/>
+        <stop offset="100%" stop-color="#ff8a42" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="mountFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#6b4a74"/>
+        <stop offset="100%" stop-color="#3e2b51"/>
+      </linearGradient>
+      <linearGradient id="mountLeft" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%"   stop-color="#142d27"/>
+        <stop offset="60%"  stop-color="#1d4135"/>
+        <stop offset="100%" stop-color="#2e5e4c"/>
+      </linearGradient>
+      <linearGradient id="mountRight" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#142d27"/>
+        <stop offset="60%"  stop-color="#1d4135"/>
+        <stop offset="100%" stop-color="#2e5e4c"/>
+      </linearGradient>
+      <linearGradient id="riverGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="#ffcf8e"/>
+        <stop offset="20%"  stop-color="#e89a68"/>
+        <stop offset="50%"  stop-color="#4a6a70"/>
+        <stop offset="100%" stop-color="#102a25"/>
+      </linearGradient>
+      <filter id="soft"><feGaussianBlur stdDeviation="15"/></filter>
+      <filter id="softer"><feGaussianBlur stdDeviation="30"/></filter>
+    </defs>
+
+    <rect width="1440" height="900" fill="url(#skyGrad)"/>
+    <circle cx="720" cy="460" r="320" fill="url(#sunGlow)"/>
+    <circle cx="720" cy="460" r="65" fill="#fffce8" opacity="0.95"/>
+
+    <g filter="url(#soft)" opacity="0.3">
+      <ellipse cx="350"  cy="250" rx="280" ry="25" fill="#ffb877"/>
+      <ellipse cx="1100" cy="200" rx="320" ry="20" fill="#ff9a56"/>
+      <ellipse cx="720"  cy="320" rx="200" ry="15" fill="#ffd89b"/>
+    </g>
+
+    <path d="M0,520 L0,380 L140,300 L280,400 L400,320 L520,450 L640,380
+             L720,480 L800,380 L920,450 L1040,320 L1160,400 L1300,300 L1440,380 L1440,520 Z"
+          fill="url(#mountFar)" opacity="0.85"/>
+
+    <path d="M0,900 L0,480 L80,400 L180,460 L280,380 L400,480 L500,420
+             L580,530 L640,620 L720,900 L0,900 Z" fill="url(#mountLeft)"/>
+    <path d="M640,620 L580,530 L500,420 L400,480 L280,380 L180,460 L80,400 L0,480 L0,900 L720,900 Z"
+          fill="#4a7c6d" opacity="0.15" filter="url(#soft)"/>
+
+    <path d="M1440,900 L1440,480 L1360,400 L1260,460 L1160,380 L1040,480
+             L940,420 L860,530 L800,620 L720,900 L1440,900 Z" fill="url(#mountRight)"/>
+    <path d="M800,620 L860,530 L940,420 L1040,480 L1160,380 L1260,460 L1360,400 L1440,480 L1440,900 L720,900 Z"
+          fill="#4a7c6d" opacity="0.15" filter="url(#soft)"/>
+
+    <path d="M640,620 Q720,750 720,900 L800,900 Q720,750 800,620 Z" fill="url(#riverGrad)"/>
+
+    <g filter="url(#soft)" opacity="0.6">
+      <ellipse cx="720" cy="650" rx="25" ry="4" fill="#ffd89b"/>
+      <ellipse cx="720" cy="700" rx="40" ry="6" fill="#ffc073"/>
+      <ellipse cx="720" cy="760" rx="60" ry="8" fill="#ffb877" opacity="0.8"/>
+      <ellipse cx="720" cy="830" rx="80" ry="10" fill="#e89a68" opacity="0.5"/>
+    </g>
+    <ellipse cx="720" cy="550" rx="200" ry="30" fill="#ffd89b" opacity="0.2" filter="url(#softer)"/>
+  </svg>
+</div>
+
+<!-- ================= 搜索 ================= -->
+<div class="searchbar" id="searchbar" role="search">
+  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+    <circle cx="11" cy="11" r="7"/>
+    <path d="M20 20l-3.6-3.6"/>
+  </svg>
+  <input
+    id="searchInput"
+    type="text"
+    placeholder="搜索页面内容…"
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+    enterkeyhint="search"
+    role="combobox"
+    aria-label="搜索页面内容"
+    aria-autocomplete="list"
+    aria-expanded="false"
+    aria-controls="results">
+  <button type="button" class="clear-btn" id="clearBtn" aria-label="清除搜索内容" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
+  <kbd id="kbdHint" aria-hidden="true">⌘K</kbd>
+</div>
+
+<div class="results" id="results" role="listbox" aria-label="搜索结果" aria-hidden="true">
+  <div class="results-hover" id="resultsHover" aria-hidden="true"></div>
+  <div class="results-list" id="resultsList"></div>
+</div>
+
+<div class="sr-only" id="searchStatus" role="status" aria-live="polite"></div>
+
+<!-- ================= 正文 ================= -->
+<main class="content" id="content" tabindex="-1">
+  <header class="hero">
+    <h1>GUIOS</h1>
+    <p>这个网页是为 GUIOS 做的介绍页<br>hi,welcome to GUI OS</p>
+  </header>
+
+  <section class="card" id="s1">
+    <h2>什么是 GUIOS</h2>
+    <p>GUIOS 是一个基于 Scratch 编写的虚拟系统。它用积木搭出了窗口、图标、按钮和完整的交互逻辑，打开之后就像一台小小的电脑，可以点、可以拖动、也可以运行内置的程序。</p>
+  </section>
+
+  <section class="card" id="s2">
+    <h2>运行环境</h2>
+    <p>如需要运行 GUIOS，需要提前下好 TurboWarp 做运行底座。TurboWarp 负责提供系统运行所需的基础支持，GUIOS 在它之上启动并显示图形界面。</p>
+  </section>
+
+  <section class="card" id="s3">
+    <h2>图形用户界面</h2>
+    <p>这里的 GUI 不指图形用户界面。GUIOS 的界面由图标、窗口和按钮组成，操作方式直观，不需要记住任何命令，点一下就能完成想做的事。</p>
+  </section>
+
+  <section class="card" id="s4">
+    <h2>联系与获取</h2>
+    <p>如有需要，请联系制作本人。这个页面会持续更新 GUIOS 的介绍与使用说明，后续也会补充截图和运行演示。</p>
+  </section>
+</main>
+
+<!-- ================= 跳过开场 ================= -->
+<button type="button" class="skip-intro" id="skipIntro" hidden>跳过开场 <kbd>Esc</kbd></button>
+
+<!-- ================= 开场动画 ================= -->
+<div class="intro" id="intro" aria-hidden="true">
+  <div class="intro-gui" id="introGui">GUI</div>
+  <div class="drag-box" id="dragBox"></div>
+
+  <div class="mid-card" id="midCard">
+    <div class="mid-art" id="midArt"></div>
+    <div class="mid-gui">GUI UI</div>
+  </div>
+
+  <svg class="pen" id="pen" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M3 21l4.2-1.1L18.4 8.7a2.9 2.9 0 0 0-4.1-4.1L3.1 15.8 2 21z"
+          fill="#f2e9d6" stroke="#2f2a22" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M13.6 5.3l4.1 4.1" stroke="#2f2a22" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M3 21l3.3-1.1-2.2-2.2z" fill="#25211b"/>
+  </svg>
+
+  <svg class="cursor" id="cursor" viewBox="0 0 26 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M3 2 L3 24.5 L8.6 19 L12.3 28 L16 26.4 L12.4 17.8 L20.5 17.8 Z"
+          fill="#ffffff" stroke="#1b1b1b" stroke-width="1.6" stroke-linejoin="round"/>
+  </svg>
+</div>
+
+<noscript>
+  <style>
+    .veil, .intro, .skip-intro { display: none !important; }
+    .content { opacity: 1 !important; transform: none !important; }
+    .searchbar { opacity: 1 !important; pointer-events: auto !important; }
+    .card.reveal { opacity: 1 !important; transform: none !important; }
+  </style>
+</noscript>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+
+  const intro       = $("intro");
+  const introGui    = $("introGui");
+  const cursorEl    = $("cursor");
+  const pen         = $("pen");
+  const searchbar   = $("searchbar");
+  const midCard     = $("midCard");
+  const midArt      = $("midArt");
+  const content     = $("content");
+  const input       = $("searchInput");
+  const results     = $("results");
+  const resultsList = $("resultsList");
+  const hoverEl     = $("resultsHover");
+  const veil        = $("veil");
+  const cursorGlow  = $("cursorGlow");
+  const scene       = $("scene");
+  const dragBox     = $("dragBox");
+  const statusEl    = $("searchStatus");
+  const skipBtn     = $("skipIntro");
+  const clearBtn    = $("clearBtn");
+  const kbdHint     = $("kbdHint");
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const reduceMotion  = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+
+  /* 平台自适应快捷键提示 */
+  (function initKbdHint() {
+    const ua = navigator.userAgent || "";
+    const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || "") || /Mac OS X/.test(ua);
+    if (kbdHint) kbdHint.textContent = isMac ? "⌘K" : "Ctrl K";
+  })();
+
+  /* 开场期间让正文不可聚焦 / 不可读屏 */
+  if (content) content.setAttribute("inert", "");
+
+  /* ============================================================
+     一、指针特效：环境光晕 + 背景视差
+     ============================================================ */
+  (function initPointerFX() {
+    if (reduceMotion || coarsePointer || !cursorGlow) return;
+
+    let gx = window.innerWidth / 2, gy = window.innerHeight / 2;
+    let gtx = gx, gty = gy;
+    let px = 0, py = 0, ptx = 0, pty = 0;
+    let rafId = null;
+
+    function tick() {
+      rafId = null;
+      let busy = false;
+
+      gx += (gtx - gx) * 0.16;
+      gy += (gty - gy) * 0.16;
+      cursorGlow.style.transform =
+        "translate3d(" + gx.toFixed(2) + "px," + gy.toFixed(2) + "px,0)";
+      if (Math.abs(gtx - gx) > 0.4 || Math.abs(gty - gy) > 0.4) busy = true;
+
+      if (scene) {
+        px += (ptx - px) * 0.08;
+        py += (pty - py) * 0.08;
+        scene.style.transform =
+          "translate3d(" + px.toFixed(2) + "px," + py.toFixed(2) + "px,0) scale(1.04)";
+        if (Math.abs(ptx - px) > 0.1 || Math.abs(pty - py) > 0.1) busy = true;
+      }
+
+      if (busy) rafId = requestAnimationFrame(tick);
+    }
+
+    document.addEventListener("mousemove", (e) => {
+      gtx = e.clientX;
+      gty = e.clientY;
+      cursorGlow.classList.add("on");
+
+      const nx = e.clientX / window.innerWidth - 0.5;
+      const ny = e.clientY / window.innerHeight - 0.5;
+      ptx = nx * -16;
+      pty = ny * -12;
+
+      if (rafId === null) rafId = requestAnimationFrame(tick);
+    }, { passive: true });
+
+    document.addEventListener("mouseleave", () => cursorGlow.classList.remove("on"));
+  })();
+
+  /* ============================================================
+     二、3D 倾斜（12 度，文字悬浮）
+     ============================================================ */
+  const TILT_MAX = 12;
+  const tiltCards = [];
+
+  (function initTilt() {
+    if (reduceMotion || coarsePointer) return;
+
+    document.querySelectorAll(".card").forEach((card) => {
+      const state = { rect: null, rafId: null, active: false, lastX: 0, lastY: 0 };
+
+      function applyTilt(x, y) {
+        if (!state.rect) state.rect = card.getBoundingClientRect();
+        const r = state.rect;
+        if (!r || !r.width || !r.height) return;
+
+        const nx = (x - r.left) / r.width - 0.5;
+        const ny = (y - r.top) / r.height - 0.5;
+
+        card.style.transform =
+          "perspective(1000px) rotateX(" + (-ny * 2 * TILT_MAX).toFixed(2) + "deg)" +
+          " rotateY(" + (nx * 2 * TILT_MAX).toFixed(2) + "deg) scale3d(1.02, 1.02, 1.02)";
+
+        card.style.setProperty("--mx", ((nx + 0.5) * 100).toFixed(1) + "%");
+        card.style.setProperty("--my", ((ny + 0.5) * 100).toFixed(1) + "%");
+      }
+
+      card.addEventListener("mouseenter", (e) => {
+        state.active = true;
+        state.rect = card.getBoundingClientRect();
+        card.style.transitionDelay = "0ms"; // 入场延迟不影响悬停响应
+        card.classList.add("tilting");
+        applyTilt(e.clientX, e.clientY);
+      });
+
+      card.addEventListener("mousemove", (e) => {
+        if (!state.active) return;
+        state.lastX = e.clientX;
+        state.lastY = e.clientY;
+        if (state.rafId !== null) return;
+        state.rafId = requestAnimationFrame(() => {
+          state.rafId = null;
+          if (state.active) applyTilt(state.lastX, state.lastY);
+        });
+      });
+
+      card.addEventListener("mouseleave", () => {
+        state.active = false;
+        state.rect = null;
+        if (state.rafId !== null) {
+          cancelAnimationFrame(state.rafId);
+          state.rafId = null;
+        }
+        card.classList.remove("tilting");
+        card.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)";
+        card.style.setProperty("--mx", "50%");
+        card.style.setProperty("--my", "50%");
+      });
+
+      tiltCards.push(state);
+    });
+  })();
+
+  /* 滚动 / 缩放时用 rAF 节流，清空缓存的矩形 */
+  let scrollRaf = null;
+  function invalidateRects() {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = null;
+      tiltCards.forEach((s) => { s.rect = null; });
+    });
+  }
+  window.addEventListener("scroll", invalidateRects, { passive: true });
+  window.addEventListener("resize", invalidateRects);
+
+  /* ============================================================
+     三、卡片滚动入场
+     ============================================================ */
+  let revealStarted = false;
+
+  function startCardReveal() {
+    if (revealStarted) return;
+    revealStarted = true;
+
+    const cards = Array.prototype.slice.call(document.querySelectorAll(".card"));
+    if (!cards.length) return;
+
+    if (reduceMotion || !("IntersectionObserver" in window)) {
+      cards.forEach((c) => c.classList.add("in"));
+      return;
+    }
+
+    cards.forEach((c) => c.classList.add("reveal"));
+
+    const io = new IntersectionObserver((entries) => {
+      let i = 0;
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        const delay = (i++) * 90;
+        el.style.transitionDelay = delay + "ms";
+        el.classList.add("in");
+        io.unobserve(el);
+        window.setTimeout(() => { el.style.transitionDelay = ""; }, 900 + delay);
+      });
+    }, { rootMargin: "0px 0px -10% 0px", threshold: 0.08 });
+
+    cards.forEach((c) => io.observe(c));
+  }
+
+  /* ============================================================
+     四、开场动画（可跳过 / 会话内只播一次）
+     ============================================================ */
+  const INTRO_KEY = "guios:intro-seen";
+
+  let introFinished = false;
+  let introPlaying  = false;
+  let introAborted  = false;
+  let pageRevealed  = false;
+
+  let introSeen = false;
+  try { introSeen = window.sessionStorage.getItem(INTRO_KEY) === "1"; } catch (e) { /* 隐私模式 */ }
+
+  function moveCursor(x, y) {
+    cursorEl.style.transform = "translate(" + x + "px," + y + "px)";
+  }
+
+  async function dragSelect(x1, y1, x2, y2, isCard) {
+    if (introAborted) return;
+    dragBox.style.left = x1 + "px";
+    dragBox.style.top = y1 + "px";
+    dragBox.style.width = "0px";
+    dragBox.style.height = "0px";
+    moveCursor(x1, y1);
+    dragBox.classList.add("active");
+    dragBox.classList.toggle("selection", !!isCard);
+    await wait(50);
+    if (introAborted) return;
+
+    moveCursor(x2, y2);
+    dragBox.style.width = (x2 - x1) + "px";
+    dragBox.style.height = (y2 - y1) + "px";
+    await wait(560);
+  }
+
+  async function hideDragBox() {
+    dragBox.classList.remove("active");
+    await wait(220);
+    dragBox.classList.remove("selection");
+  }
+
+  function revealPage() {
+    if (pageRevealed) return;
+    pageRevealed = true;
+
+    document.body.classList.remove("intro-lock");
+    if (content) content.removeAttribute("inert");
+    searchbar.classList.add("revealed", "interactive");
+    if (content) content.classList.add("show");
+
+    startCardReveal();
+  }
+
+  function finishIntro() {
+    if (introFinished) return;
+    introFinished = true;
+    introPlaying = false;
+
+    try { window.sessionStorage.setItem(INTRO_KEY, "1"); } catch (e) { /* 忽略 */ }
+
+    revealPage();
+
+    if (skipBtn) {
+      skipBtn.classList.remove("show");
+      skipBtn.disabled = true;
+    }
+    if (intro) intro.classList.add("done");
+    if (veil) veil.classList.add("hide");
+
+    window.setTimeout(() => {
+      if (intro) intro.style.display = "none";
+      if (veil) veil.style.display = "none";
+      if (skipBtn && skipBtn.parentNode) skipBtn.remove();
+    }, 700);
+  }
+
+  function skipIntro() {
+    if (introFinished) return;
+    introAborted = true;
+    finishIntro();
+  }
+
+  /* 已看过开场：无动画直接进入 */
+  function hardSkipIntro() {
+    introAborted = true;
+    introFinished = true;
+    if (intro) intro.style.display = "none";
+    if (veil) veil.style.display = "none";
+    if (skipBtn && skipBtn.parentNode) skipBtn.remove();
+    revealPage();
+  }
+
+  async function playIntro() {
+    if (introFinished || introPlaying) return;
+    introPlaying = true;
+    introAborted = false;
+    document.body.classList.add("intro-lock");
+
+    if (reduceMotion) { skipIntro(); return; }
+
+    if (skipBtn) {
+      skipBtn.hidden = false;
+      requestAnimationFrame(() => skipBtn.classList.add("show"));
+    }
+
+    const alive = () => !introAborted;
+
+    await wait(60);   if (!alive()) return;
+    introGui.classList.add("in");
+    await wait(420);  if (!alive()) return;
+    introGui.classList.add("blink");
+    await wait(320);  if (!alive()) return;
+    introGui.classList.remove("blink");
+    introGui.classList.add("out");
+    await wait(360);  if (!alive()) return;
+
+    cursorEl.classList.add("visible");
+    moveCursor(window.innerWidth * 0.5, window.innerHeight * 0.5);
+    await wait(40);   if (!alive()) return;
+
+    const sb = searchbar.getBoundingClientRect();
+    moveCursor(sb.left - 10, sb.top - 10);
+    await wait(460);  if (!alive()) return;
+    await dragSelect(sb.left, sb.top, sb.right, sb.bottom, false);
+    if (!alive()) return;
+    await hideDragBox();
+    if (!alive()) return;
+    searchbar.classList.add("revealed");
+    await wait(380);  if (!alive()) return;
+
+    const cw = midCard.getBoundingClientRect();
+    moveCursor(cw.left - 10, cw.top - 10);
+    await wait(460);  if (!alive()) return;
+    await dragSelect(cw.left, cw.top, cw.right, cw.bottom, true);
+    if (!alive()) return;
+    await hideDragBox();
+    if (!alive()) return;
+
+    midCard.classList.add("show");
+    await wait(320);  if (!alive()) return;
+
+    pen.style.transition = "none";
+    pen.style.transform = "translate(" + (cw.left + 18) + "px," + (cw.top + cw.height - 58) + "px) rotate(-14deg)";
+    void pen.getBoundingClientRect();
+    pen.style.transition = "transform .9s ease-in-out, opacity .3s ease";
+    pen.classList.add("visible");
+    await wait(50);   if (!alive()) return;
+
+    pen.style.transform = "translate(" + (cw.left + cw.width - 72) + "px," + (cw.top + 16) + "px) rotate(-14deg)";
+    midArt.style.clipPath = "inset(0 0 0 0)";
+    await wait(860);  if (!alive()) return;
+
+    pen.style.opacity = "0";
+    cursorEl.style.opacity = "0";
+    await wait(200);  if (!alive()) return;
+
+    finishIntro();
+  }
+
+  /* 跳过交互 */
+  if (skipBtn) skipBtn.addEventListener("click", skipIntro);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && introPlaying && !introFinished) {
+      e.preventDefault();
+      skipIntro();
+    }
+  });
+
+  /* 窗口尺寸变化会让固定坐标错位，直接收尾 */
+  let introResizeTimer = null;
+  window.addEventListener("resize", () => {
+    if (!introPlaying || introFinished) return;
+    clearTimeout(introResizeTimer);
+    introResizeTimer = window.setTimeout(() => {
+      if (introPlaying && !introFinished) skipIntro();
+    }, 200);
+  });
+
+  /* ============================================================
+     五、结果悬停指示器
+     ============================================================ */
+  let hoverReady = false;
+  let hoveredBtn = null;
+
+  function placeHover(btn, instant) {
+    if (!btn) return;
+    const rr = results.getBoundingClientRect();
+    const br = btn.getBoundingClientRect();
+    const dx = br.left - rr.left - results.clientLeft + results.scrollLeft;
+    const dy = br.top  - rr.top  - results.clientTop  + results.scrollTop;
+
+    if (instant || !hoverReady) hoverEl.style.transition = "none";
+    hoverEl.style.width  = br.width  + "px";
+    hoverEl.style.height = br.height + "px";
+    hoverEl.style.transform = "translate(" + dx.toFixed(2) + "px," + dy.toFixed(2) + "px)";
+    results.classList.add("hovering");
+
+    if (instant || !hoverReady) {
+      void hoverEl.offsetWidth;
+      hoverEl.style.transition = "";
+      hoverReady = true;
+    }
+    hoveredBtn = btn;
+  }
+
+  function hideHover() {
+    results.classList.remove("hovering");
+    hoveredBtn = null;
+  }
+
+  results.addEventListener("mouseover", (e) => {
+    const btn = e.target.closest(".result-item");
+    if (!btn || !resultsList.contains(btn) || btn === hoveredBtn) return;
+    placeHover(btn, false);
+  });
+  results.addEventListener("mouseleave", hideHover);
+  results.addEventListener("scroll", () => {
+    if (hoveredBtn) placeHover(hoveredBtn, true);
+  }, { passive: true });
+
+  resultsList.addEventListener("focusin", (e) => {
+    const btn = e.target.closest(".result-item");
+    if (btn) placeHover(btn, false);
+  });
+
+  /* ============================================================
+     六、搜索
+     ============================================================ */
+  function escapeReg(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+  let currentMarks = [];
+
+  function clearMarks() {
+    const marks = content.querySelectorAll("mark");
+    if (!marks.length) { currentMarks = []; return; }
+    marks.forEach((m) => m.replaceWith(document.createTextNode(m.textContent)));
+    content.normalize();
+    currentMarks = [];
+  }
+
+  function openResults() {
+    results.classList.add("open");
+    results.setAttribute("aria-hidden", "false");
+    input.setAttribute("aria-expanded", "true");
+  }
+
+  function closeResults() {
+    results.classList.remove("open");
+    results.setAttribute("aria-hidden", "true");
+    input.setAttribute("aria-expanded", "false");
+    hideHover();
+  }
+
+  function makeSnippet(text, q) {
+    const frag = document.createDocumentFragment();
+    const re = new RegExp(escapeReg(q), "gi");
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m[0] === "") { re.lastIndex++; continue; }
+      if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const mk = document.createElement("mark");
+      mk.className = "r-mark";
+      mk.textContent = m[0];
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    return frag;
+  }
+
+  function getResultButtons() {
+    return Array.prototype.slice.call(resultsList.querySelectorAll(".result-item"));
+  }
+
+  function buildEmptyState() {
+    const box = document.createElement("div");
+    box.className = "no-result";
+    box.setAttribute("role", "status");
+    box.innerHTML =
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+      'stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/>' +
+      '<path d="M20 20l-3.6-3.6"/><path d="M8.6 11h4.8"/></svg>' +
+      "<strong>没有找到相关内容</strong>" +
+      "<span>试试更短或更常见的关键词</span>";
+    return box;
+  }
+
+  const CTX_BEFORE = 18;
+  const SNIPPET_MIN = 72;
+
+  function doSearch(rawQuery) {
+    clearMarks();
+    resultsList.textContent = "";
+    closeResults();
+    hoverReady = false;
+    hoverEl.style.width = "0px";
+    hoverEl.style.height = "0px";
+
+    const q = (rawQuery || "").trim();
+    if (!q) { statusEl.textContent = ""; return; }
+
+    const snippetLen = Math.max(SNIPPET_MIN, q.length + 40);
+
+    /* 1. 收集所有可搜索文本节点 */
+    const walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+        if (node.parentNode && node.parentNode.nodeName === "MARK") return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    });
+
+    const textNodes = [];
+    let n;
+    while ((n = walker.nextNode())) textNodes.push(n);
+
+    /* 2. 逐个节点高亮，并记录真实匹配偏移 */
+    const hits = [];
+    const re = new RegExp(escapeReg(q), "gi");
+
+    for (let i = 0; i < textNodes.length; i++) {
+      const node = textNodes[i];
+      const text = node.nodeValue;
+      const indices = [];
+      let m;
+
+      re.lastIndex = 0;
+      while ((m = re.exec(text)) !== null) {
+        if (m[0] === "") { re.lastIndex++; continue; }
+        indices.push(m.index);
+      }
+      if (!indices.length) continue;
+
+      const frag = document.createDocumentFragment();
+      const marks = [];
+      let last = 0;
+
+      for (let k = 0; k < indices.length; k++) {
+        const idx = indices[k];
+        if (idx > last) frag.appendChild(document.createTextNode(text.slice(last, idx)));
+        const mk = document.createElement("mark");
+        mk.textContent = text.slice(idx, idx + q.length);
+        frag.appendChild(mk);
+        marks.push(mk);
+        currentMarks.push(mk);
+        last = idx + q.length;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+
+      const parent = node.parentNode;
+      parent.replaceChild(frag, node);
+
+      hits.push({ parent, text, first: indices[0], marks });
+    }
+
+    /* 3. 无结果 */
+    if (!currentMarks.length) {
+      resultsList.appendChild(buildEmptyState());
+      openResults();
+      statusEl.textContent = "没有找到相关内容";
+      return;
+    }
+
+    /* 4. 同一段落只生成一条结果 */
+    const seen = new Set();
+
+    hits.forEach((hit) => {
+      const parent = hit.parent;
+      if (!parent || !parent.isConnected || seen.has(parent)) return;
+      seen.add(parent);
+
+      const section = parent.closest("section") || content;
+      const heading = section.querySelector("h1, h2");
+      const title = heading ? heading.textContent.trim() : "页面";
+
+      const start = Math.max(0, hit.first - CTX_BEFORE);
+      let snippet = hit.text.slice(start, start + snippetLen).replace(/\s+/g, " ");
+      if (start > 0) snippet = "…" + snippet;
+      if (start + snippetLen < hit.text.length) snippet += "…";
+
+      const btn = document.createElement("button");
+      btn.className = "result-item";
+      btn.type = "button";
+      btn.setAttribute("role", "option");
+
+      const t = document.createElement("span");
+      t.className = "r-title";
+      t.textContent = title;
+
+      const s = document.createElement("span");
+      s.className = "r-snippet";
+      s.appendChild(makeSnippet(snippet, q));
+
+      btn.appendChild(t);
+      btn.appendChild(s);
+
+      const target = hit.marks[0] || parent;
+
+      btn.addEventListener("click", () => {
+        closeResults();
+        target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+
+        if (target.nodeType === 1 && target.tagName === "MARK") {
+          target.classList.remove("pulse");
+          void target.offsetWidth;
+          target.classList.add("pulse");
+          window.setTimeout(() => target.classList.remove("pulse"), 2500);
+        }
+
+        const card = target.closest("section");
+        if (card) {
+          card.classList.remove("flash");
+          void card.offsetWidth;
+          card.classList.add("flash");
+          window.setTimeout(() => card.classList.remove("flash"), 1500);
+        }
+        invalidateRects();
+      });
+
+      resultsList.appendChild(btn);
+    });
+
+    openResults();
+    statusEl.textContent = "找到 " + getResultButtons().length + " 条相关结果";
+  }
+
+  /* ============================================================
+     七、事件绑定与启动
+     ============================================================ */
+  function syncClearBtn() {
+    if (clearBtn) clearBtn.hidden = input.value.length === 0;
+  }
+
+  let composing = false;
+  let timer = null;
+
+  input.addEventListener("compositionstart", () => { composing = true; });
+  input.addEventListener("compositionend", () => {
+    composing = false;
+    syncClearBtn();
+    doSearch(input.value);
+  });
+
+  input.addEventListener("input", () => {
+    syncClearBtn();
+    if (composing) return;
+    clearTimeout(timer);
+    timer = window.setTimeout(() => doSearch(input.value), 160);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const first = resultsList.querySelector(".result-item");
+      if (first) first.click();
+    } else if (e.key === "Escape") {
+      if (input.value) {
+        input.value = "";
+        syncClearBtn();
+        doSearch("");
+      } else {
+        closeResults();
+        input.blur();
+      }
+    } else if (e.key === "ArrowDown") {
+      const items = getResultButtons();
+      if (!items.length) return;
+      e.preventDefault();
+      items[0].focus();
+      placeHover(items[0], false);
+    }
+  });
+
+  resultsList.addEventListener("keydown", (e) => {
+    const items = getResultButtons();
+    if (!items.length) return;
+    const idx = items.indexOf(document.activeElement);
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = idx < 0 ? 0 : (idx + 1) % items.length;
+      items[next].focus();
+      placeHover(items[next], false);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = idx <= 0 ? items.length - 1 : idx - 1;
+      items[prev].focus();
+      placeHover(items[prev], false);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      input.focus();
+    }
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      input.value = "";
+      syncClearBtn();
+      doSearch("");
+      input.focus();
+    });
+  }
+
+  searchbar.addEventListener("click", () => input.focus());
+
+  document.addEventListener("click", (e) => {
+    if (!searchbar.contains(e.target) && !results.contains(e.target)) {
+      closeResults();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!introFinished) return;
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      input.focus();
+      input.select();
+    }
+  });
+
+  /* 启动 */
+  function boot() {
+    if (introSeen) { hardSkipIntro(); return; }
+    if (document.readyState === "complete") {
+      playIntro();
+    } else {
+      window.addEventListener("load", playIntro, { once: true });
+    }
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
